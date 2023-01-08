@@ -32,7 +32,25 @@ Widget::Widget(QWidget *parent) :
 
         QString topic("chadTest");
         // 发送一条消息
-        if (mClient->publish(topic+"/123", "test") == -1)
+        /*
+        std::string message = R"(
+            {
+                "from":"A",
+                "to":"B",
+                "msg:"hola",
+                "typing":true
+            }
+                              )", err;
+        */
+
+        json11::Json::object mJsonMap;
+        mJsonMap["from"] = "A";
+        mJsonMap["to"] = "B";
+        mJsonMap["msg"] = "hola";
+        mJsonMap["typing"] = true;
+        std::string message = ((json11::Json)mJsonMap).dump();
+
+        if (mClient->publish(topic+"/123", message.c_str()) == -1)
             qDebug()<< QLatin1String("Could not publish message");
 
         // 订阅
@@ -52,6 +70,18 @@ Widget::Widget(QWidget *parent) :
                     + message
                     + QLatin1Char('\n');
         qDebug()<<"recv"<<content;
+
+        // 解析 json
+        std::string err;
+        json11::Json mJson = json11::Json::parse(message, err);
+        if(!err.empty()){
+            qDebug()<<"parse json error:"<<err.c_str();
+            return;
+        }
+
+        // 打印json，判断键是否存在
+        // qDebug()<<"json:"<<mJson.dump().c_str();
+        // qDebug()<<"key msg:"<<!mJson["msg"].is_null()<<", msg2:"<<!mJson["msg2"].is_null();
     });
 
     connect(mClient, &QMqttClient::pingResponseReceived, this, [this]() {

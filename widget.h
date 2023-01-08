@@ -5,6 +5,8 @@
 #include <QtMqtt/qmqttclient.h>
 #include <QDebug>
 #include <QDateTime>
+#include <json11/json11.hpp>
+#include <string>
 
 namespace Ui {
 class Widget;

@@ -25,10 +25,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        widget.cpp
+        widget.cpp \
+    json11/json11.cpp
 
 HEADERS += \
-        widget.h
+        widget.h \
+    json11/json11.hpp
 
 FORMS += \
         widget.ui
