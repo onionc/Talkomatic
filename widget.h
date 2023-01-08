@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QtMqtt/qmqttclient.h>
 #include <QDebug>
+#include <QMessageBox>
 #include <QDateTime>
 #include <json11/json11.hpp>
 #include <string>
@@ -20,9 +21,15 @@ public:
     explicit Widget(QWidget *parent = 0);
     ~Widget();
 
+    QString name; // 名称
+
+private slots:
+    void on_conBtn_clicked(bool checked);
+
 private:
     Ui::Widget *ui;
     QMqttClient *mClient;
+
 };
 
 #endif // WIDGET_H

@@ -14,22 +14,26 @@ Widget::Widget(QWidget *parent) :
     mClient->setUsername("chad");
     mClient->setPassword("123456");
 
-    // 连接
 
-    mClient->connectToHost();
-
-    /*
-     if (mClient->state() == QMqttClient::Disconnected) {
-        qDebug()<<"con ok";
-    } else {
-        qDebug()<<"con failed"<<mClient->state();
-    }
-    */
     // 判断连接
-
     connect(mClient, &QMqttClient::stateChanged, this, [this](){
-        qDebug()<<"state:"<<mClient->state();
-
+        QMqttClient::ClientState state = mClient->state();
+        qDebug()<<"state:"<<state;
+        if(state == QMqttClient::Connected){
+            // 已连接
+            this->ui->conBtn->setChecked(true);
+            this->ui->nameEdit->setEnabled(false);
+            this->ui->conBtn->setText("断开");
+        }else if(state == QMqttClient::Disconnected){
+            // 断开连接
+            this->ui->conBtn->setChecked(false);
+            this->ui->nameEdit->setEnabled(true);
+            this->ui->conBtn->setText("连接");
+            return;
+        }else{
+            // 正在连接/其他，继续等待
+            return;
+        }
         QString topic("chadTest");
         // 发送一条消息
         /*
@@ -44,17 +48,18 @@ Widget::Widget(QWidget *parent) :
         */
 
         json11::Json::object mJsonMap;
-        mJsonMap["from"] = "A";
-        mJsonMap["to"] = "B";
+        mJsonMap["from"] = this->name.toStdString().c_str();
+        //mJsonMap["to"] = "B";
         mJsonMap["msg"] = "hola";
         mJsonMap["typing"] = true;
         std::string message = ((json11::Json)mJsonMap).dump();
 
-        if (mClient->publish(topic+"/123", message.c_str()) == -1)
+        if (mClient->publish(topic+"/server", message.c_str()) == -1)
             qDebug()<< QLatin1String("Could not publish message");
 
         // 订阅
-        auto subscription = mClient->subscribe(topic+"/#");
+        qDebug()<<"topic name:"<<topic+"/"+this->name;
+        auto subscription = mClient->subscribe(topic+"/"+this->name);
         if (!subscription) {
             qDebug()<<"sub failed";
         }
@@ -97,4 +102,26 @@ Widget::Widget(QWidget *parent) :
 Widget::~Widget()
 {
     delete ui;
+}
+
+// 连接
+void Widget::on_conBtn_clicked(bool checked)
+{
+    if(checked){
+        // 连接
+        // 判断用户名
+        if(ui->nameEdit->text().isEmpty()){
+            QMessageBox::critical(this, "error", "名称不能为空");
+            ui->conBtn->setChecked(false);
+            return;
+        }
+        name = ui->nameEdit->text();
+
+        qDebug()<<"con";
+        mClient->connectToHost();
+    }else{
+        // 断开连接
+        qDebug()<<"discon";
+        mClient->disconnectFromHost();
+    }
 }
