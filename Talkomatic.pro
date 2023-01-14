@@ -30,7 +30,13 @@ SOURCES += \
 
 HEADERS += \
         widget.h \
-    json11/json11.hpp
+    json11/json11.hpp \
+    redis/RedisConnect.h \
+    redis/ResPool.h \
+    redis/typedef.h
+
 
 FORMS += \
         widget.ui
+
+LIBS += -lWs2_32 -lpsapi -pthread

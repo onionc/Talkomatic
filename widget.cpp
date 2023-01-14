@@ -1,6 +1,9 @@
 #include "widget.h"
 #include "ui_widget.h"
 
+int RedisConnect::POOL_MAXLEN = 8;
+int RedisConnect::SOCKET_TIMEOUT = 10;
+
 Widget::Widget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Widget)
@@ -97,6 +100,11 @@ Widget::Widget(QWidget *parent) :
     });
 
 
+    // redis
+    RedisConnect::Setup("127.0.0.1", 6379, "123456"); // 初始化连接池
+    redis = RedisConnect::Instance(); // 获取一个连接
+
+    redis->set("room", "X_X");
 }
 
 Widget::~Widget()

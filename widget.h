@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <json11/json11.hpp>
 #include <string>
+#include <redis/RedisConnect.h>
 
 namespace Ui {
 class Widget;
@@ -22,6 +23,7 @@ public:
     ~Widget();
 
     QString name; // 名称
+    shared_ptr<RedisConnect> redis;
 
 private slots:
     void on_conBtn_clicked(bool checked);
@@ -29,6 +31,11 @@ private slots:
 private:
     Ui::Widget *ui;
     QMqttClient *mClient;
+
+
+    // room
+    void joinRoom(QString name);
+    void leaveRoom(QString name);
 
 };
 
