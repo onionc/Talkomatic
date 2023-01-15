@@ -26,15 +26,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         widget.cpp \
-    json11/json11.cpp
+    json11/json11.cpp \
+    util.cpp
 
 HEADERS += \
         widget.h \
     json11/json11.hpp \
     redis/RedisConnect.h \
     redis/ResPool.h \
-    redis/typedef.h
+    redis/typedef.h \
+    util.h
 
+INCLUDEPATH += include
 
 FORMS += \
         widget.ui

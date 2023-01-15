@@ -10,6 +10,8 @@
 #include <string>
 #include <redis/RedisConnect.h>
 
+
+#define ENV_PATH "config/local.env"
 namespace Ui {
 class Widget;
 }

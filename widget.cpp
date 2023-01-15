@@ -1,8 +1,10 @@
 #include "widget.h"
 #include "ui_widget.h"
+#include "util.h"
 
 int RedisConnect::POOL_MAXLEN = 8;
 int RedisConnect::SOCKET_TIMEOUT = 10;
+
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent),
@@ -12,10 +14,10 @@ Widget::Widget(QWidget *parent) :
 
     // mqtt
     mClient = new QMqttClient(this);
-    mClient->setHostname("c3e36aae.cn-shenzhen.emqx.cloud"); // todo: 参数放配置文件
-    mClient->setPort(11733);
-    mClient->setUsername("chad");
-    mClient->setPassword("123456");
+    mClient->setHostname(util::readIni(ENV_PATH, "mqtt/hostname").toString()); // todo: 参数放配置文件
+    mClient->setPort(util::readIni(ENV_PATH, "mqtt/port").toInt());
+    mClient->setUsername(util::readIni(ENV_PATH, "mqtt/username").toString());
+    mClient->setPassword(util::readIni(ENV_PATH, "mqtt/password").toString());
 
 
     // 判断连接
@@ -87,6 +89,7 @@ Widget::Widget(QWidget *parent) :
             return;
         }
 
+
         // 打印json，判断键是否存在
         // qDebug()<<"json:"<<mJson.dump().c_str();
         // qDebug()<<"key msg:"<<!mJson["msg"].is_null()<<", msg2:"<<!mJson["msg2"].is_null();
@@ -100,11 +103,18 @@ Widget::Widget(QWidget *parent) :
     });
 
 
-    // redis
-    RedisConnect::Setup("127.0.0.1", 6379, "123456"); // 初始化连接池
-    redis = RedisConnect::Instance(); // 获取一个连接
 
-    redis->set("room", "X_X");
+
+
+
+    // redis
+    RedisConnect::Setup(util::readIni(ENV_PATH, "redis/ip").toString().toStdString(),
+                        util::readIni(ENV_PATH, "redis/port").toInt(),
+                        util::readIni(ENV_PATH, "redis/password").toString().toStdString()); // 初始化连接池
+    //redis = RedisConnect::Instance(); // 获取一个连接
+    //if(redis->OK);
+    //redis->set("room", "X_X");
+
 }
 
 Widget::~Widget()
