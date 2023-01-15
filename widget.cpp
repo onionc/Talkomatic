@@ -111,10 +111,13 @@ Widget::Widget(QWidget *parent) :
     RedisConnect::Setup(util::readIni(ENV_PATH, "redis/ip").toString().toStdString(),
                         util::readIni(ENV_PATH, "redis/port").toInt(),
                         util::readIni(ENV_PATH, "redis/password").toString().toStdString()); // 初始化连接池
-    //redis = RedisConnect::Instance(); // 获取一个连接
-    //if(redis->OK);
-    //redis->set("room", "X_X");
-
+    qDebug()<<RedisConnect::CanUse();
+    redis = RedisConnect::Instance(); // 获取一个连接
+    if(redis==NULL){
+        qDebug()<< QString("redis con failed, please check %1 file.").arg(ENV_PATH);
+    }else{
+        redis->set("room", "X_X");
+    }
 }
 
 Widget::~Widget()
