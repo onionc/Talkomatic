@@ -25,19 +25,28 @@ public:
     ~Widget();
 
     QString name; // 名称
+    QVector <QString> roomNames; // 房间名称
     shared_ptr<RedisConnect> redis;
 
 private slots:
     void on_conBtn_clicked(bool checked);
+    void on_roomBtn_clicked(bool checked);
 
 private:
     Ui::Widget *ui;
     QMqttClient *mClient;
+    QMqttClient::ClientState state;
 
 
+    // 登入和退出
+    void login();
+    void logout();
     // room
+    QVector<QString> getRooms(); // 获取房间列表
     void joinRoom(QString name);
     void leaveRoom(QString name);
+
+
 
 };
 

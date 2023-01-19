@@ -20,9 +20,10 @@ Widget::Widget(QWidget *parent) :
     mClient->setPassword(util::readIni(ENV_PATH, "mqtt/password").toString());
 
 
+    state = QMqttClient::Disconnected;
     // 判断连接
     connect(mClient, &QMqttClient::stateChanged, this, [this](){
-        QMqttClient::ClientState state = mClient->state();
+        state = mClient->state();
         qDebug()<<"state:"<<state;
         if(state == QMqttClient::Connected){
             // 已连接
@@ -39,7 +40,9 @@ Widget::Widget(QWidget *parent) :
             // 正在连接/其他，继续等待
             return;
         }
-        QString topic("chadTest");
+
+        login();
+        //QString topic("chadTest");
         // 发送一条消息
         /*
         std::string message = R"(
@@ -51,7 +54,7 @@ Widget::Widget(QWidget *parent) :
             }
                               )", err;
         */
-
+        /*
         json11::Json::object mJsonMap;
         mJsonMap["from"] = this->name.toStdString().c_str();
         //mJsonMap["to"] = "B";
@@ -68,6 +71,7 @@ Widget::Widget(QWidget *parent) :
         if (!subscription) {
             qDebug()<<"sub failed";
         }
+        */
     });
 
 
@@ -115,8 +119,6 @@ Widget::Widget(QWidget *parent) :
     redis = RedisConnect::Instance(); // 获取一个连接
     if(redis==NULL){
         qDebug()<< QString("redis con failed, please check %1 file.").arg(ENV_PATH);
-    }else{
-        redis->set("room", "X_X");
     }
 }
 
@@ -145,4 +147,63 @@ void Widget::on_conBtn_clicked(bool checked)
         qDebug()<<"discon";
         mClient->disconnectFromHost();
     }
+}
+
+// 登入服务器
+void Widget::login(){
+    // 获取房间列表
+    getRooms();
+}
+
+// 获取房间列表
+QVector<QString> Widget::getRooms(){
+    QVector<QString> rooms;
+    vector<string> rooms2;
+    if(redis==NULL){
+        return rooms;
+    }
+
+    int c = redis->zrange (rooms2, "rooms",0, 100);
+    qDebug()<<"c"<<c;
+
+
+}
+
+// 进入房间
+void Widget::on_roomBtn_clicked(bool checked)
+{
+    if(checked){
+        // 进入房间
+        // 判断mqtt连接
+        qDebug()<<state;
+        if(state!=QMqttClient::Connected){
+            QMessageBox::critical(this, "error", "请先连接服务器");
+            ui->roomBtn->setChecked(false);
+            return;
+        }
+        // 判断房间名
+        if(ui->roomEdit->text().isEmpty()){
+            QMessageBox::critical(this, "error", "房间名称不能为空");
+            ui->roomBtn->setChecked(false);
+            return;
+        }
+        // 进入房间
+        if(redis!=NULL){
+            QString room = ui->roomEdit->text();
+            std::string r2 = "rooms_"+room.toStdString();
+
+            // 写入房间数据，房间中写入人员
+            if(!redis->zadd("rooms", room.toStdString(), 1) || !redis->zadd(r2, name.toStdString(), 1)){
+                QMessageBox::critical(this, "error", "失败");
+                ui->roomBtn->setChecked(false);
+                return;
+            }
+
+            // todo: 进入聊天界面
+        }
+    }else{
+        // 离开房间
+
+    }
+
 }
