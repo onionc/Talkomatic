@@ -152,19 +152,30 @@ void Widget::on_conBtn_clicked(bool checked)
 // 登入服务器
 void Widget::login(){
     // 获取房间列表
-    getRooms();
+    std::vector<std::string> rooms = getRooms();
+    QString roomName;
+
+    ui->roomComboBox->clear();
+    for(int i=0; i<rooms.size(); i++){
+        roomName = QString::fromStdString(rooms[i]);
+        if(!roomName.startsWith("room_")){
+            continue;
+        }
+        roomName.remove(0, strlen("room_"));
+        qDebug()<<roomName;
+        ui->roomComboBox->addItem(roomName);
+    }
 }
 
 // 获取房间列表
-QVector<QString> Widget::getRooms(){
-    QVector<QString> rooms;
-    vector<string> rooms2;
-    if(redis==NULL){
-        return rooms;
+std::vector<std::string> Widget::getRooms(){
+    vector<string> rooms;
+
+    if(redis!=NULL){
+        redis->keys(rooms, "room_*"); // every room begin with 'room_'
     }
 
-    int c = redis->zrange (rooms2, "rooms",0, 100);
-    qDebug()<<"c"<<c;
+    return rooms;
 
 
 }
@@ -182,23 +193,23 @@ void Widget::on_roomBtn_clicked(bool checked)
             return;
         }
         // 判断房间名
-        if(ui->roomEdit->text().isEmpty()){
+        if(ui->roomComboBox->currentText().isEmpty()){
             QMessageBox::critical(this, "error", "房间名称不能为空");
             ui->roomBtn->setChecked(false);
             return;
         }
         // 进入房间
         if(redis!=NULL){
-            QString room = ui->roomEdit->text();
-            std::string r2 = "rooms_"+room.toStdString();
+            QString room = ui->roomComboBox->currentText();
+            std::string r2 = "room_"+room.toStdString();
 
-            // 写入房间数据，房间中写入人员
-            if(!redis->zadd("rooms", room.toStdString(), 1) || !redis->zadd(r2, name.toStdString(), 1)){
+            // 房间中写入人员
+            if( !redis->zadd(r2, name.toStdString(), 1)){
                 QMessageBox::critical(this, "error", "失败");
                 ui->roomBtn->setChecked(false);
                 return;
             }
-
+            redis->expire(r2, 60);
             // todo: 进入聊天界面
         }
     }else{

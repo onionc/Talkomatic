@@ -42,7 +42,7 @@ private:
     void login();
     void logout();
     // room
-    QVector<QString> getRooms(); // 获取房间列表
+    std::vector<std::string> getRooms(); // 获取房间列表
     void joinRoom(QString name);
     void leaveRoom(QString name);
 
