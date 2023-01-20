@@ -43,9 +43,10 @@ private:
     void logout();
     // room
     std::vector<std::string> getRooms(); // 获取房间列表
-    void joinRoom(QString name);
-    void leaveRoom(QString name);
+    bool joinRoom(QString roomName); // 加入房间
+    bool leaveRoom(QString roomName); // 退出房间
 
+    bool initTalk(); // 聊天初始化
 
 
 };

@@ -162,7 +162,6 @@ void Widget::login(){
             continue;
         }
         roomName.remove(0, strlen("room_"));
-        qDebug()<<roomName;
         ui->roomComboBox->addItem(roomName);
     }
 }
@@ -180,41 +179,71 @@ std::vector<std::string> Widget::getRooms(){
 
 }
 
-// 进入房间
+// 加入和退出房间按钮
 void Widget::on_roomBtn_clicked(bool checked)
 {
+    QString room = ui->roomComboBox->currentText();
+
     if(checked){
         // 进入房间
-        // 判断mqtt连接
-        qDebug()<<state;
-        if(state!=QMqttClient::Connected){
-            QMessageBox::critical(this, "error", "请先连接服务器");
+        if(!joinRoom(room)){
             ui->roomBtn->setChecked(false);
             return;
-        }
-        // 判断房间名
-        if(ui->roomComboBox->currentText().isEmpty()){
-            QMessageBox::critical(this, "error", "房间名称不能为空");
-            ui->roomBtn->setChecked(false);
-            return;
-        }
-        // 进入房间
-        if(redis!=NULL){
-            QString room = ui->roomComboBox->currentText();
-            std::string r2 = "room_"+room.toStdString();
-
-            // 房间中写入人员
-            if( !redis->zadd(r2, name.toStdString(), 1)){
-                QMessageBox::critical(this, "error", "失败");
-                ui->roomBtn->setChecked(false);
-                return;
-            }
-            redis->expire(r2, 60);
-            // todo: 进入聊天界面
         }
     }else{
         // 离开房间
-
+        leaveRoom(room);
     }
 
+}
+
+bool Widget::joinRoom(QString roomName){
+    // 判断mqtt连接
+    qDebug()<<state;
+    if(state!=QMqttClient::Connected){
+        QMessageBox::critical(this, "error", "请先连接服务器");
+        return false;
+    }
+    // 判断房间名
+    if(ui->roomComboBox->currentText().isEmpty()){
+        QMessageBox::critical(this, "error", "房间名称不能为空");
+        return false;
+    }
+    // 进入房间
+    if(redis!=NULL){
+
+        std::string r2 = "room_"+roomName.toStdString();
+
+        // 房间中写入人员
+        if( !redis->zadd(r2, name.toStdString(), 1)){
+            QMessageBox::critical(this, "error", "失败");
+            return false;
+        }
+        redis->expire(r2, 60);
+
+        // 判断房间的人数（除自己外，一人）
+        std::vector<std::string> memberArr ;
+        int num=0;
+        redis->zrange(memberArr, r2, 0, 100);
+        for(int i=0; i<memberArr.size(); i++){
+            if(memberArr[i] == name.toStdString()){
+                continue;
+            }
+            qDebug()<<memberArr[i].c_str();
+            num++;
+        }
+        if(num>1){
+            // todo 目前只允许两个人
+            QMessageBox::critical(this, "error", "房间已满，请更换其他房间");
+            return false;
+        }
+
+        // todo: 进入聊天界面
+
+        return true;
+    }
+}
+
+bool Widget::leaveRoom(QString name){
+    return true;
 }
