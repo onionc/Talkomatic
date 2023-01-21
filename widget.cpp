@@ -120,6 +120,9 @@ Widget::Widget(QWidget *parent) :
     if(redis==NULL){
         qDebug()<< QString("redis con failed, please check %1 file.").arg(ENV_PATH);
     }
+
+    // 默认不显示聊天界面
+    ui->RoomGroupBox->hide();
 }
 
 Widget::~Widget()
@@ -222,28 +225,38 @@ bool Widget::joinRoom(QString roomName){
         redis->expire(r2, 60);
 
         // 判断房间的人数（除自己外，一人）
-        std::vector<std::string> memberArr ;
-        int num=0;
+        std::vector<std::string> memberArr, memberOther;
         redis->zrange(memberArr, r2, 0, 100);
         for(int i=0; i<memberArr.size(); i++){
             if(memberArr[i] == name.toStdString()){
                 continue;
             }
-            qDebug()<<memberArr[i].c_str();
-            num++;
+            memberOther.push_back(memberArr[i]);
         }
-        if(num>1){
+        if(memberOther.size()>1){
             // todo 目前只允许两个人
             QMessageBox::critical(this, "error", "房间已满，请更换其他房间");
             return false;
         }
 
-        // todo: 进入聊天界面
+        // 聊天界面设置
+        // 显示聊天框
+        ui->RoomGroupBox->show();
+        // 填充发送者信息
+        ui->person1Label->setText(name);
+
+        // 如果有人，则显示对方信息
+        if(memberOther.size()==1){
+            ui->person2Label->setText(memberOther[0].c_str());
+        }
 
         return true;
     }
 }
 
 bool Widget::leaveRoom(QString name){
+
+    // 隐藏聊天界面
+    ui->RoomGroupBox->hide();
     return true;
 }
