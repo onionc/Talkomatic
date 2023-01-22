@@ -25,7 +25,7 @@ public:
     ~Widget();
 
     QString name; // 名称
-    QVector <QString> roomNames; // 房间名称
+    QString currentRoomName; // 当前房间名称
     shared_ptr<RedisConnect> redis;
 
 private slots:
@@ -44,7 +44,7 @@ private:
     // room
     std::vector<std::string> getRooms(); // 获取房间列表
     bool joinRoom(QString roomName); // 加入房间
-    bool leaveRoom(QString roomName); // 退出房间
+    bool leaveRoom(); // 退出房间
 
     bool initTalk(); // 聊天初始化
 
