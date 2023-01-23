@@ -95,6 +95,13 @@ Widget::Widget(QWidget *parent) :
             return;
         }
 
+        // 判断来源
+        if(!mJson["from"].is_null() && !mJson["msg"].is_null()){
+            if(mJson["from"].string_value() == dialogistName.toStdString()){
+                // 如果来源是对话者 则显示
+                ui->person2TextBrowser->setText(QString::fromStdString(mJson["msg"].string_value()));
+            }
+        }
 
         // 打印json，判断键是否存在
         // qDebug()<<"json:"<<mJson.dump().c_str();
@@ -123,10 +130,13 @@ Widget::Widget(QWidget *parent) :
         qDebug()<< QString("redis con failed, please check %1 file.").arg(ENV_PATH);
     }
 
-    // 默认不显示聊天界面
-    ui->RoomGroupBox->hide();
-
+    // 默认值
+    ui->RoomGroupBox->hide(); // 默认不显示聊天界面
     currentRoomName = "";
+    name = dialogistName = "";
+
+    // textChanged 事件获取输入信息
+    connect(ui->person1TextBrowser, &QTextEdit::textChanged, this, &Widget::slot_getInputMsg);
 }
 
 Widget::~Widget()
@@ -228,12 +238,6 @@ bool Widget::joinRoom(QString roomName){
 
         currentRoomName = "room_"+roomName;
 
-        // 房间中写入人员
-        if( !redis->zadd(currentRoomName.toStdString(), name.toStdString(), 1)){
-            QMessageBox::critical(this, "error", "失败");
-            return false;
-        }
-        redis->expire(currentRoomName.toStdString(), 60);
 
         // 判断房间的人数（除自己外，一人）
         std::vector<std::string> memberArr, memberOther;
@@ -241,7 +245,8 @@ bool Widget::joinRoom(QString roomName){
         for(int i=0; i<memberArr.size(); i++){
             qDebug()<<"omember: "<<i<< " "<< memberArr[i].c_str();
             if(memberArr[i] == name.toStdString()){
-                continue;
+                QMessageBox::critical(this, "error", "同名用户已经登入");
+                return false;
             }
             qDebug()<<"add";
             memberOther.push_back(memberArr[i]);
@@ -252,6 +257,13 @@ bool Widget::joinRoom(QString roomName){
             return false;
         }
 
+        // 房间中写入人员
+        if( !redis->zadd(currentRoomName.toStdString(), name.toStdString(), 1)){
+            QMessageBox::critical(this, "error", "失败");
+            return false;
+        }
+        redis->expire(currentRoomName.toStdString(), 60);
+
         // 聊天界面设置
         // 显示聊天框
         ui->RoomGroupBox->show();
@@ -260,7 +272,15 @@ bool Widget::joinRoom(QString roomName){
 
         // 如果有人，则显示对方信息
         if(memberOther.size()==1){
-            ui->person2Label->setText(memberOther[0].c_str());
+            dialogistName = memberOther[0].c_str();
+            ui->person2Label->setText(dialogistName);
+        }
+
+        // 订阅房间消息
+
+        auto subscription = mClient->subscribe(currentRoomName);
+        if (!subscription) {
+            qDebug()<<"sub failed";
         }
 
         return true;
@@ -280,6 +300,38 @@ bool Widget::leaveRoom(){
         qDebug()<<"zrem "<<currentRoomName<<"_"<<name;
     }
 
+    // 删除订阅
+    mClient->unsubscribe(currentRoomName);
+
     currentRoomName = "";
+    dialogistName = "";
     return true;
 }
+
+void Widget::slot_getInputMsg(){
+    QString text = ui->person1TextBrowser->toPlainText();
+
+    // 发送消息
+    if(!name.isEmpty() && !dialogistName.isEmpty()){
+        sendMsg(currentRoomName, name, text);
+    }
+
+
+
+}
+
+// 发送mqtt消息
+bool Widget::sendMsg(QString topic, QString username, QString msg){
+    json11::Json::object mJsonMap;
+    mJsonMap["from"] = username.toStdString().c_str();
+    mJsonMap["msg"] = msg.toStdString().c_str();
+    mJsonMap["typing"] = true;
+    std::string message = ((json11::Json)mJsonMap).dump();
+    qDebug()<<topic<<"_"<<message.c_str();
+
+    if (mClient->publish(topic, message.c_str()) == -1)
+        qDebug()<< QLatin1String("Could not publish message");
+
+}
+
+

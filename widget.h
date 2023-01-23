@@ -9,7 +9,7 @@
 #include <json11/json11.hpp>
 #include <string>
 #include <redis/RedisConnect.h>
-
+#include <QTimer>
 
 #define ENV_PATH "config/local.env"
 namespace Ui {
@@ -24,13 +24,17 @@ public:
     explicit Widget(QWidget *parent = 0);
     ~Widget();
 
-    QString name; // 名称
+    QString name; // 本人名称
+    QString dialogistName; // 对方名称
     QString currentRoomName; // 当前房间名称
     shared_ptr<RedisConnect> redis;
+
 
 private slots:
     void on_conBtn_clicked(bool checked);
     void on_roomBtn_clicked(bool checked);
+
+    void slot_getInputMsg(); // 获取输入消息
 
 private:
     Ui::Widget *ui;
@@ -47,6 +51,10 @@ private:
     bool leaveRoom(); // 退出房间
 
     bool initTalk(); // 聊天初始化
+
+    // mqtt消息
+    bool sendMsg(QString topic, QString username, QString msg); // 发送mqtt消息
+
 
 
 };
