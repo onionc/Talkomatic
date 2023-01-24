@@ -36,6 +36,7 @@ private slots:
 
     void slot_getInputMsg(); // 获取输入消息
     void refreshRoomList(); // 刷新房间列表
+    bool getRoomState(); // 获取房间状态，true代表有其他的一人或没有，false代表错误
 
 private:
     Ui::Widget *ui;
@@ -57,7 +58,8 @@ private:
     bool sendMsg(QString topic, QString username, QString msg); // 发送mqtt消息
 
     // 定时器
-    QTimer *refreshRoomTimer;
+    QTimer *refreshRoomTimer; // 刷新房间列表
+    QTimer *refreshRoomStateTimer; // 刷新房间状态
 
 
 };

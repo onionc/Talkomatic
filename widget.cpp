@@ -28,10 +28,18 @@ Widget::Widget(QWidget *parent) :
    qDebug()<<util::readIni(ENV_PATH, "mqtt/hostname").toString();
 
     state = QMqttClient::Disconnected;
+    /*
     // 使用定时器刷新房间
     refreshRoomTimer = new QTimer(this);
     refreshRoomTimer->setInterval(1000);
     connect(refreshRoomTimer, &QTimer::timeout, this, &Widget::refreshRoomList);
+    */
+
+
+    // 使用定时器刷新房间状态
+    refreshRoomStateTimer = new QTimer(this);
+    refreshRoomStateTimer->setInterval(1000);
+    connect(refreshRoomStateTimer, &QTimer::timeout, this, &Widget::getRoomState);
 
     // 判断连接
     connect(mClient, &QMqttClient::stateChanged, this, [this](){
@@ -53,7 +61,8 @@ Widget::Widget(QWidget *parent) :
             return;
         }
 
-        this->refreshRoomTimer->start();
+        //this->refreshRoomTimer->start();
+        refreshRoomList();
     });
 
 
@@ -113,6 +122,8 @@ Widget::Widget(QWidget *parent) :
 
 Widget::~Widget()
 {
+    delete refreshRoomTimer;
+    delete refreshRoomStateTimer;
     delete ui;
 }
 
@@ -211,21 +222,7 @@ bool Widget::joinRoom(QString roomName){
         currentRoomName = "room_"+roomName;
 
 
-        // 判断房间的人数（除自己外，一人）
-        std::vector<std::string> memberArr, memberOther;
-        redis->zrange(memberArr, currentRoomName.toStdString(), 0, 100);
-        for(int i=0; i<memberArr.size(); i++){
-            qDebug()<<"omember: "<<i<< " "<< memberArr[i].c_str();
-            if(memberArr[i] == name.toStdString()){
-                QMessageBox::critical(this, "error", "同名用户已经登入");
-                return false;
-            }
-            qDebug()<<"add";
-            memberOther.push_back(memberArr[i]);
-        }
-        if(memberOther.size()>1){
-            // todo 目前只允许两个人
-            QMessageBox::critical(this, "error", "房间已满，请更换其他房间");
+        if(!getRoomState()){
             return false;
         }
 
@@ -242,21 +239,56 @@ bool Widget::joinRoom(QString roomName){
         // 填充发送者信息
         ui->person1Label->setText(name);
 
-        // 如果有人，则显示对方信息
-        if(memberOther.size()==1){
-            dialogistName = memberOther[0].c_str();
-            ui->person2Label->setText(dialogistName);
-        }
-
         // 订阅房间消息
-
         auto subscription = mClient->subscribe(currentRoomName);
         if (!subscription) {
             qDebug()<<"sub failed";
         }
 
+        refreshRoomStateTimer->start();
+
         return true;
     }
+}
+
+bool Widget::getRoomState(){
+    // 判断房间的人数（除自己外，一人）
+    qDebug()<<"test"<<currentRoomName;currentRoomName;
+    std::vector<std::string> memberArr, memberOther;
+    redis->zrange(memberArr, currentRoomName.toStdString(), 0, 100);
+    for(int i=0; i<memberArr.size(); i++){
+        qDebug()<<"omember: "<<i<< " "<< memberArr[i].c_str();
+        if(memberArr[i] == name.toStdString()){
+            /*
+            QMessageBox::critical(this, "error", "同名用户已经登入");
+            refreshRoomStateTimer->stop();
+            return false;
+            */
+            continue;
+        }
+        qDebug()<<"add";
+        memberOther.push_back(memberArr[i]);
+    }
+    if(memberOther.size()==0){
+        return true;
+    }else if(memberOther.size()==1){
+        // 如果有人，则获取对方名称
+        dialogistName = memberOther[0].c_str();
+
+        // 显示对方信息
+        if(!dialogistName.isEmpty()){
+            ui->person2Label->setText(dialogistName);
+        }
+
+        return true;
+    }else{
+        // todo 目前只允许两个人
+        QMessageBox::critical(this, "error", "房间已满，请更换其他房间");
+        refreshRoomStateTimer->stop();
+        return false;
+    }
+
+    return false;
 }
 
 bool Widget::leaveRoom(){
