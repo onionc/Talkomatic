@@ -35,6 +35,7 @@ private slots:
     void on_roomBtn_clicked(bool checked);
 
     void slot_getInputMsg(); // 获取输入消息
+    void refreshRoomList(); // 刷新房间列表
 
 private:
     Ui::Widget *ui;
@@ -42,8 +43,8 @@ private:
     QMqttClient::ClientState state;
 
 
-    // 登入和退出
-    void login();
+    // 登入和退出相关操作
+
     void logout();
     // room
     std::vector<std::string> getRooms(); // 获取房间列表
@@ -55,6 +56,8 @@ private:
     // mqtt消息
     bool sendMsg(QString topic, QString username, QString msg); // 发送mqtt消息
 
+    // 定时器
+    QTimer *refreshRoomTimer;
 
 
 };

@@ -12,6 +12,11 @@ Widget::Widget(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    // 默认值
+    ui->RoomGroupBox->hide(); // 默认不显示聊天界面
+    currentRoomName = "";
+    name = dialogistName = "";
+
     // mqtt
     mClient = new QMqttClient(this);
     mClient->setHostname(util::readIni(ENV_PATH, "mqtt/hostname").toString()); // todo: 参数放配置文件
@@ -23,6 +28,11 @@ Widget::Widget(QWidget *parent) :
    qDebug()<<util::readIni(ENV_PATH, "mqtt/hostname").toString();
 
     state = QMqttClient::Disconnected;
+    // 使用定时器刷新房间
+    refreshRoomTimer = new QTimer(this);
+    refreshRoomTimer->setInterval(1000);
+    connect(refreshRoomTimer, &QTimer::timeout, this, &Widget::refreshRoomList);
+
     // 判断连接
     connect(mClient, &QMqttClient::stateChanged, this, [this](){
         state = mClient->state();
@@ -43,37 +53,7 @@ Widget::Widget(QWidget *parent) :
             return;
         }
 
-        login();
-        //QString topic("chadTest");
-        // 发送一条消息
-        /*
-        std::string message = R"(
-            {
-                "from":"A",
-                "to":"B",
-                "msg:"hola",
-                "typing":true
-            }
-                              )", err;
-        */
-        /*
-        json11::Json::object mJsonMap;
-        mJsonMap["from"] = this->name.toStdString().c_str();
-        //mJsonMap["to"] = "B";
-        mJsonMap["msg"] = "hola";
-        mJsonMap["typing"] = true;
-        std::string message = ((json11::Json)mJsonMap).dump();
-
-        if (mClient->publish(topic+"/server", message.c_str()) == -1)
-            qDebug()<< QLatin1String("Could not publish message");
-
-        // 订阅
-        qDebug()<<"topic name:"<<topic+"/"+this->name;
-        auto subscription = mClient->subscribe(topic+"/"+this->name);
-        if (!subscription) {
-            qDebug()<<"sub failed";
-        }
-        */
+        this->refreshRoomTimer->start();
     });
 
 
@@ -115,11 +95,6 @@ Widget::Widget(QWidget *parent) :
         qDebug()<<"ping";
     });
 
-
-
-
-
-
     // redis
     RedisConnect::Setup(util::readIni(ENV_PATH, "redis/ip").toString().toStdString(),
                         util::readIni(ENV_PATH, "redis/port").toInt(),
@@ -130,10 +105,7 @@ Widget::Widget(QWidget *parent) :
         qDebug()<< QString("redis con failed, please check %1 file.").arg(ENV_PATH);
     }
 
-    // 默认值
-    ui->RoomGroupBox->hide(); // 默认不显示聊天界面
-    currentRoomName = "";
-    name = dialogistName = "";
+
 
     // textChanged 事件获取输入信息
     connect(ui->person1TextBrowser, &QTextEdit::textChanged, this, &Widget::slot_getInputMsg);
@@ -166,8 +138,8 @@ void Widget::on_conBtn_clicked(bool checked)
     }
 }
 
-// 登入服务器
-void Widget::login(){
+// 刷新房间列表
+void Widget::refreshRoomList(){
     // 获取房间列表
     std::vector<std::string> rooms = getRooms();
     QString roomName;
