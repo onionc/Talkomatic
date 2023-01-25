@@ -10,6 +10,7 @@
 #include <string>
 #include <redis/RedisConnect.h>
 #include <QTimer>
+#include <QTextCursor>
 
 #define ENV_PATH "config/local.env"
 namespace Ui {
@@ -55,7 +56,7 @@ private:
     bool initTalk(); // 聊天初始化
 
     // mqtt消息
-    bool sendMsg(QString topic, QString username, QString msg); // 发送mqtt消息
+    bool sendMsg(QString topic, QString username, QString msg, int cursorPosition=0); // 发送mqtt消息
 
     // 定时器
     QTimer *refreshRoomTimer; // 刷新房间列表

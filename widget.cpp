@@ -89,6 +89,14 @@ Widget::Widget(QWidget *parent) :
             if(mJson["from"].string_value() == dialogistName.toStdString()){
                 // 如果来源是对话者 则显示
                 ui->person2TextBrowser->setText(QString::fromStdString(mJson["msg"].string_value()));
+                /*
+                // 设置光标位置
+                int nCurpos = mJson["cursor"].is_number() ? mJson["cursor"].int_value() : 0;
+                QTextCursor tc;
+                tc.setPosition(nCurpos);
+                qDebug()<<"get cursor:"<<nCurpos;
+                ui->person2TextBrowser->setTextCursor(tc);
+                */
             }
         }
 
@@ -117,7 +125,8 @@ Widget::Widget(QWidget *parent) :
 
 
     // textChanged 事件获取输入信息
-    connect(ui->person1TextBrowser, &QTextEdit::textChanged, this, &Widget::slot_getInputMsg);
+    connect(ui->person1TextBrowser, &QTextBrowser::textChanged, this, &Widget::slot_getInputMsg);
+    connect(ui->person1TextBrowser, &QTextBrowser::cursorPositionChanged, this, &Widget::slot_getInputMsg);
 }
 
 Widget::~Widget()
@@ -315,9 +324,15 @@ bool Widget::leaveRoom(){
 void Widget::slot_getInputMsg(){
     QString text = ui->person1TextBrowser->toPlainText();
 
+    // 获取光标位置
+    QTextCursor tc = ui->person1TextBrowser->textCursor();
+    int nCurpos = tc.position();
+    qDebug()<<"line:"<<nCurpos<<","<<text;
+
+
     // 发送消息
     if(!name.isEmpty() && !dialogistName.isEmpty()){
-        sendMsg(currentRoomName, name, text);
+        sendMsg(currentRoomName, name, text, nCurpos);
     }
 
 
@@ -325,11 +340,12 @@ void Widget::slot_getInputMsg(){
 }
 
 // 发送mqtt消息
-bool Widget::sendMsg(QString topic, QString username, QString msg){
+bool Widget::sendMsg(QString topic, QString username, QString msg, int cursorPosition){
     json11::Json::object mJsonMap;
     mJsonMap["from"] = username.toStdString().c_str();
     mJsonMap["msg"] = msg.toStdString().c_str();
     mJsonMap["typing"] = true;
+    mJsonMap["cursor"] = cursorPosition;
     std::string message = ((json11::Json)mJsonMap).dump();
     qDebug()<<topic<<"_"<<message.c_str();
 
